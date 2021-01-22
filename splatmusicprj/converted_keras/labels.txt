@@ -1,0 +1,16 @@
+0 batteryfull
+1 chanponchant
+2 chipdamage
+3 dontslip
+4 easyqueasy
+5 endolphinesurge
+6 entropical
+7 finsandfiddles
+8 inkoming
+9 prettytactics
+10 ripentry
+11 seaformshanty
+12 seasick
+13 shipwreckin
+14 suddentheory
+15 undertow
