@@ -8,7 +8,8 @@ import pyaudio
 import wave
 import time
 import os
-# import gc
+import gc
+import json
 import librosa
 import librosa.display
 import soundfile as sf
@@ -35,16 +36,24 @@ from scipy.signal import argrelmax
 # myModule
 import urlKnocker
 import widgetWindow
+import buttlelogUpdater
+import iksmXmlReader as iksmXml
 
+filepath_f = open('./filepath.json', 'r')
+filepath_json_dict = json.load(filepath_f)
+viewerFontPath = filepath_json_dict["rocknrollone_font"]
+YOUR_COOKIE = str(iksmXml.tokenFromXml(filepath_json_dict["iksm_xml"]))
+stat_apikey_f = open(
+    'D:/Users/poly_Z/Documents/splatmusicprj/statInkConfig/apikey.json', 'r')
+stat_apikey_json_dict = json.load(stat_apikey_f)
+API_KEY = stat_apikey_json_dict["apikey"]
 
-# img_blank = cv2.imread(
-#     "D:/Users/poly_Z/Documents/splatmusicprj/cv2Pictures/blank.png", 0)
 blankLogtxt = []
 widgetWidth, widgetHeight, widgetSep = widgetWindow.windowSize()
 baseImg = np.zeros([widgetHeight, widgetWidth, 3])
 
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-    "GPU SETUP", blankLogtxt, baseImg)
+    "GPU SETUP", blankLogtxt, baseImg, viewerFontPath)
 # GPUセットアップ RAM消費を抑えるやつ
 print("Num GPUs Available: ", len(
     tf.config.experimental.list_physical_devices('GPU')))
@@ -56,34 +65,38 @@ if len(physical_devices) > 0:
         print('{} memory growth: {}'.format(
             device, tf.config.experimental.get_memory_growth(device)))
     blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-        "OK", blankLogtxt, baseImg)
+        "OK", blankLogtxt, baseImg, viewerFontPath)
 else:
     print("Not enough GPU hardware devices available")
 
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-    "SETUP", blankLogtxt, baseImg)
+    "SETUP", blankLogtxt, baseImg, viewerFontPath)
 # 曲名のラベル
 label = ["batteryfull", "chanponchant", "chipdamage", "dontslip", "easyqueasy", "endolphinsurge", "entropical", "finsandfiddles",
          "inkoming", "prettytactics", "ripentry", "seafoamshanty", "seasick", "shipwreckin", "suddentheory", "undertow"]
 
 # 各種パス
-model_path = "D:/Users/poly_Z/Documents/splatmusicprj/modelSampleV3.h5"  # 楽曲判別モデル
+model_path = filepath_json_dict["model_path"]  # 楽曲判別モデル
 sampleDataFileName = "admsample"  # レコード，画像ファイル用仮置きファイル名
-# audio_output_path = "D:/Users/poly_Z/Documents/splatmusicprj/wavNewInput/"+sampleDataFileName+".wav"#レコードファイル
-# image_output_path="D:/Users/poly_Z/Documents/splatmusicprj/wavNewOutput/"+sampleDataFileName+".png"#メルスペクトログラム画像
-# audio_output_path = "D:/Users/poly_Z/Documents/splatmusicprj/samplingDatas/"+sampleDataFileName#+".wav"#レコードファイル
-audio_output_path = "D:/Users/poly_Z/Music/splat10sAutoLog/" + \
+audio_output_path = filepath_json_dict["audio_output_path"] + \
     sampleDataFileName  # +".wav"#レコードファイル
-image_output_path = "D:/Users/poly_Z/Documents/splatmusicprj/wavNewOutput/" + \
+image_output_path = filepath_json_dict["image_output_path"] + \
     sampleDataFileName  # +".png"#メルスペクトログラム画像
+# model_path = "D:/Users/poly_Z/Documents/splatmusicprj/modelSampleV3.h5"  # 楽曲判別モデル
+# sampleDataFileName = "admsample"  # レコード，画像ファイル用仮置きファイル名
+# audio_output_path = "D:/Users/poly_Z/Music/splat10sAutoLog/" + \
+#     sampleDataFileName  # +".wav"#レコードファイル
+# image_output_path = "D:/Users/poly_Z/Documents/splatmusicprj/wavNewOutput/" + \
+#     sampleDataFileName  # +".png"#メルスペクトログラム画像
 
 # 学習モデルのロード
 model = load_model(model_path)
 
 samplingCounter = 0
-blankLogtxt, baseImg = widgetWindow.print4imgBlank("OK", blankLogtxt, baseImg)
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-    "AUDIO SETUP", blankLogtxt, baseImg)
+    "OK", blankLogtxt, baseImg, viewerFontPath)
+blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    "AUDIO SETUP", blankLogtxt, baseImg, viewerFontPath)
 # 録音デバイスの設定
 recDevName0 = 'デジタル オーディオ インターフェイス (ezcap U3 c'  # 候補1
 recDevName1 = 'CABLE Output (VB-Audio Virtual '  # 候補2
@@ -119,11 +132,12 @@ RATE = int(recSampleRate)  # sampling frequency [Hz]
 recTime = 10  # record time [s]
 dt = 1/RATE
 freq = np.linspace(0, 1.0/dt, CHUNK)
-blankLogtxt, baseImg = widgetWindow.print4imgBlank("OK", blankLogtxt, baseImg)
+blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    "OK", blankLogtxt, baseImg, viewerFontPath)
 print("setup ready")
 
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-    "CAM SETUP", blankLogtxt, baseImg)
+    "CAM SETUP", blankLogtxt, baseImg, viewerFontPath)
 # カメラ設定
 cap = cv2.VideoCapture(1)  # キャプボ
 print(cap.isOpened())
@@ -131,9 +145,13 @@ width = 728  # リサイズ設定
 height = 410  # リサイズ設定
 threshold = 220  # 2値化閾値
 img_start = cv2.imread(
-    "D:/Users/poly_Z/Documents/splatmusicprj/cv2Pictures/startThreshPicture.jpg", 0)  # 開始点検知対象画像
+    filepath_json_dict["start_thresh_picture"], 0)  # 開始点検知対象画像
 img_end = cv2.imread(
-    "D:/Users/poly_Z/Documents/splatmusicprj/cv2Pictures/finishThreshPicture.jpg", 0)
+    filepath_json_dict["finish_thresh_picture"], 0)
+# img_start = cv2.imread(
+#     "D:/Users/poly_Z/Documents/splatmusicprj/cv2Pictures/startThreshPicture.jpg", 0)  # 開始点検知対象画像
+# img_end = cv2.imread(
+#     "D:/Users/poly_Z/Documents/splatmusicprj/cv2Pictures/finishThreshPicture.jpg", 0)
 # endth=11
 
 # 検知用に成形しておく
@@ -151,17 +169,18 @@ img_end = cv2.resize(img_end, (width, height))
 # captureX, captureY = 0, 0
 # captureW, captureH = 513, 384
 image_size = 200
-blankLogtxt, baseImg = widgetWindow.print4imgBlank("OK", blankLogtxt, baseImg)
+blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    "OK", blankLogtxt, baseImg, viewerFontPath)
 print("stream ready")
 
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-    "READY", blankLogtxt, baseImg)
+    "READY", blankLogtxt, baseImg, viewerFontPath)
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-    "SEARCHING 'GO!'", blankLogtxt, baseImg)
+    "SEARCHING 'GO!'", blankLogtxt, baseImg, viewerFontPath)
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-    "MANUAL START:S", blankLogtxt, baseImg)
+    "MANUAL START:S", blankLogtxt, baseImg, viewerFontPath)
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-    "MANUAL ITRPT:Ctrl+C", blankLogtxt, baseImg)
+    "MANUAL ITRPT:Ctrl+C", blankLogtxt, baseImg, viewerFontPath)
 # cv2.imshow('frame',img_blank_c)#->ただの画像でもキー入力受けてくれるので，画面表示多分こっちのがいい
 mainLoopCounter = 0
 getJsonOptionCode = 200
@@ -173,12 +192,15 @@ while 1:
         ret, gray = cv2.threshold(gray, 230, 255, cv2.THRESH_BINARY)
         colchk = np.count_nonzero(gray == img_start)
         print(colchk)  # printでログが荒れるのはわかってるけどなぜか無いと安定しない
-        if((colchk > 280000) or (cv2.waitKey(1) & 0xFF == ord('s'))):
+        cv2InputKey = cv2.waitKey(1) & 0xFF
+        # if((colchk > 280000) or (cv2.waitKey(1) & 0xFF == ord('s'))):
+        if((colchk > 279500) or (cv2InputKey == ord('s'))):
+            # cap.release()  # お試し
             # if((np.count_nonzero(gray==img_start)>285000) or (cv2.waitKey(1) & 0xFF == ord('s'))):
-            # blankLogtxt=print4imgBlank("GAME START",blankLogtxt)
             frames = []
-            p = pyaudio.PyAudio()
-            stream = p.open(
+
+            # お試し
+            stream = pa.open(
                 format=FORMAT,
                 channels=CHANNELS,
                 rate=RATE,
@@ -188,6 +210,18 @@ while 1:
                 input_device_index=DEVICE_INDEX,
                 frames_per_buffer=CHUNK
             )
+            # p = pyaudio.PyAudio()
+            # stream = p.open(
+            #     format=FORMAT,
+            #     channels=CHANNELS,
+            #     rate=RATE,
+            #     # output_device_index = DEVICE_INDEX_O,
+            #     input=True,
+            #     # output=True,
+            #     input_device_index=DEVICE_INDEX,
+            #     frames_per_buffer=CHUNK
+            # )
+
             # cv2.destroyAllWindows()
             # cv2.imshow('frame',img_start)
             # cap.release()
@@ -201,12 +235,20 @@ while 1:
             print("done.")
             stream.stop_stream()
             stream.close()
-            p.terminate()
+
+            # お試し
+            # p.terminate()
+            # pa.terminate()
+
             blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "DONE", blankLogtxt, baseImg)
+                "DONE", blankLogtxt, baseImg, viewerFontPath)
             wf = wave.open(audio_output_path+str(samplingCounter)+".wav", 'wb')
             wf.setnchannels(CHANNELS)
-            wf.setsampwidth(p.get_sample_size(FORMAT))
+
+            # お試し
+            # wf.setsampwidth(p.get_sample_size(FORMAT))
+            wf.setsampwidth(pa.get_sample_size(FORMAT))
+
             wf.setframerate(RATE)
             wf.writeframes(b''.join(frames))
             wf.close()
@@ -234,99 +276,83 @@ while 1:
             pred_label = label[np.argmax(pred[0])]
             # print("accName:",randomAcc)
             blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                'LABEL:'+pred_label, blankLogtxt, baseImg)
+                'LABEL:'+pred_label, blankLogtxt, baseImg, viewerFontPath)
             blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                'SCORE:'+str(score), blankLogtxt, baseImg)
+                'SCORE:'+str(score), blankLogtxt, baseImg, viewerFontPath)
             print('choiceName:', pred_label)
             print('score:', score)
             os.rename(audio_output_path+str(samplingCounter)+".wav", audio_output_path+str(
                 datetime.datetime.now().strftime('%y%m%d%H%M%S'))+str(samplingCounter)+pred_label+".wav")
             samplingCounter = samplingCounter+1
-            # frames = []
-            # p = pyaudio.PyAudio()
-            # stream = p.open(
-            #     format=FORMAT,
-            #     channels=CHANNELS,
-            #     rate=RATE,
-            #     # output_device_index = DEVICE_INDEX_O,
-            #     input=True,
-            #     # output=True,
-            #     input_device_index = DEVICE_INDEX,
-            #     frames_per_buffer=CHUNK
-            # )
             blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "SEARCHING 'FINISH'", blankLogtxt, baseImg)
+                "SEARCHING 'FINISH'", blankLogtxt, baseImg, viewerFontPath)
             blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "MANUAL END:E", blankLogtxt, baseImg)
+                "MANUAL END:E", blankLogtxt, baseImg, viewerFontPath)
             print("Press e Key...")
+            # cap = cv2.VideoCapture(1)  # お試し
             while 1:
                 ret, frame = cap.read()
                 frame = cv2.resize(frame, (width, height))
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 ret, gray = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
                 compareGrey = np.count_nonzero(gray == img_end)
-                print(colchk)
-                if ((compareGrey > 266500) or (cv2.waitKey(1) & 0xFF == ord('e'))):
+                print(compareGrey)
+                cv2InputKey = cv2.waitKey(1) & 0xFF
+                if ((compareGrey > 266300) or (cv2InputKey == ord('e'))):
                     blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                        "GAME END", blankLogtxt, baseImg)
+                        "GAME END", blankLogtxt, baseImg, viewerFontPath)
                     print("game end")
                     break
+                elif (cv2InputKey == ord('i')):
+                    print("manual exit")
+                    cap.release()
+                    cv2.destroyAllWindows()
+                    stream.stop_stream()
+                    stream.close()
+                    # p.terminate()
+                    pa.terminate()
+                    gc.collect()
+                    print("end")
+                    exit()
             # cv2.destroyAllWindows()
             # cv2.imshow('frame',img_end)
             # stream.stop_stream()
             # stream.close()
             # p.terminate()
             blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "SEARCHING 'GO!'", blankLogtxt, baseImg)
+                "SEARCHING 'GO!'", blankLogtxt, baseImg, viewerFontPath)
             blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "MANUAL START:S", blankLogtxt, baseImg)
+                "MANUAL START:S", blankLogtxt, baseImg, viewerFontPath)
             blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "MANUAL ITRPT:Ctrl+C", blankLogtxt, baseImg)
+                "MANUAL ITRPT:Ctrl+C", blankLogtxt, baseImg, viewerFontPath)
 
-            ###############################################################################
-            # 戦績表示
-
-            # 試合が終了してからAPIが応答してくれる時間まで待つ
-            for i in range(16):
-                time.sleep(1)
-                print("waitnow "+str(i))
-            # 直近50戦の簡易データを取得
-            jsonData, getJsonOptionCode = urlKnocker.getJson(
-                "https://app.splatoon2.nintendo.net/api/results", getJsonOptionCode
-            )
-            # 内容から最新の試合番号を返す
-            buttleNumber, getJsonOptionCode = urlKnocker.getNewestButtleNumber(
-                jsonData,
-                getJsonOptionCode
-            )
-            # 最新の試合の詳細データを取得
-            jsonData, getJsonOptionCode = urlKnocker.getJson(
-                "https://app.splatoon2.nintendo.net/api/results/" +
-                str(buttleNumber),
-                getJsonOptionCode
-            )
-            # データの成形
-            buttleResult, buttleRule = urlKnocker.getNewestButtleResult(
-                jsonData,
-                getJsonOptionCode
-            )
-            # データの表示
-            baseImg = widgetWindow.printButtleResult(
-                buttleResult,
-                buttleRule,
-                baseImg
-            )
-            ###############################################################################
-
+            baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
+                baseImg, getJsonOptionCode, 16, viewerFontPath, YOUR_COOKIE, API_KEY)
+            gc.collect()  # お試し
             print("next")
-    # elif (cv2.waitKey(1) & 0xFF == ord('i')):
-    #     break
+        elif (cv2InputKey == ord('u')):
+            print("manual update")
+            baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
+                baseImg, getJsonOptionCode, 3, viewerFontPath, YOUR_COOKIE, API_KEY)
+            gc.collect()
+        elif (cv2InputKey == ord('i')):
+            print("manual exit")
+            cap.release()
+            cv2.destroyAllWindows()
+            stream.stop_stream()
+            stream.close()
+            # p.terminate()
+            pa.terminate()
+            gc.collect()
+            print("end")
+            exit()
     except KeyboardInterrupt:
         cap.release()
         cv2.destroyAllWindows()
         stream.stop_stream()
         stream.close()
-        p.terminate()
+        # p.terminate()
         pa.terminate()
+        gc.collect()
         print("end")
         break

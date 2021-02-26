@@ -13,14 +13,13 @@ import pprint
 # myModule
 import iksmXmlReader as iksmXml
 
+
 # 引数のURL(Splatoon API)にアクセス、レスポンスのJSONデータをreturn
-
-
-def getJson(url,option:int):  # UrlにアクセスしJsonを取得
-    if (option!=200):
-        errResponse = { 'err' : -1}
+def getJson(url, option: int):  # UrlにアクセスしJsonを取得
+    if (option != 200):
+        errResponse = {'err': -1}
         errResponseBody = json.dumps(errResponse)
-        return errResponseBody,option
+        return errResponseBody, option
     print("api access")
     # "4eb6aaef97beaee255673387d5c0d5173e51fe17"
     cookie = "iksm_session="+str(iksmXml.tokenFromXml(
@@ -37,9 +36,8 @@ def getJson(url,option:int):  # UrlにアクセスしJsonを取得
     res.close()
     return ret, code
 
+
 # 引数のJSONデータ(戦績データを期待)を戦績ごとにファイルに保存
-
-
 def saveButtleResults(jsonData):
     for result in jsonData["results"]:
         # この戦績に対応するファイル名とパスを組み立てる
@@ -60,35 +58,36 @@ def saveSingleResult(jsonData):
               indent=4, sort_keys=True)
     outputFile.close()
 
+
 # バトルログ50戦から最新バトルの番号を返す
-
-
-def getNewestButtleNumber(jsonData,code):
-    num=-1
-    optionCode=-1
-    if(code==200):
-        optionCode=code
+def getNewestButtleNumber(jsonData, code):
+    num = -1
+    optionCode = -1
+    if(code == 200):
+        optionCode = code
         for result in jsonData["results"]:
             num = result["battle_number"]
             break
-    return num,optionCode
+    return num, optionCode
 
 
 # 固定jsonファイルでの試運転用
 def readTemplateJson():
+    # json_open = open('D:/Users/poly_Z/Documents/splatmusicprj/test' +
+    #                  str(random.randint(0, 2))+'.json', 'r', encoding="utf-8")
     json_open = open('D:/Users/poly_Z/Documents/splatmusicprj/test' +
-                     str(random.randint(0, 2))+'.json', 'r', encoding="utf-8")
+                     str(2)+'.json', 'r', encoding="utf-8")
     json_load = json.load(json_open)
     return json_load
 
 
 # 任意の1戦のログから対戦成績のリストを作成して返す
-def getNewestButtleResult(jsonData,code):
+def getNewestButtleResult(jsonData, code):
     d = {}
     c = -1
-    if(code!=200):
-        d={}
-        c=-1
+    if(code != 200):
+        d = {}
+        c = -1
     elif(jsonData["type"] == "league"):  # リグマ
         d = {
             "mode": jsonData["game_mode"]["name"],
@@ -442,11 +441,30 @@ def getNewestButtleResult(jsonData,code):
 
 if __name__ == '__main__':
     # 多分こっちと同様のコードを実行すれば最新試合の戦績を読み込んでリスト返却ができる
+    import statUploader
+    import urlKnocker
     # num=getNewestButtleNumber(getJson("https://app.splatoon2.nintendo.net/api/results"))
     # print(num)
     # getNewestButtleResult(getJson("https://app.splatoon2.nintendo.net/api/results/"+str(getNewestButtleNumber(getJson("https://app.splatoon2.nintendo.net/api/results")))))
-
-    saveSingleResult(getJson("https://app.splatoon2.nintendo.net/api/results"))
+    jsonData, getJsonOptionCode = urlKnocker.getJson(
+        "https://app.splatoon2.nintendo.net/api/results", 200
+    )
+    # 内容から最新の試合番号を返す
+    buttleNumber, getJsonOptionCode = urlKnocker.getNewestButtleNumber(
+        jsonData,
+        getJsonOptionCode
+    )
+    # 最新の試合の詳細データを取得
+    jsonData, getJsonOptionCode = urlKnocker.getJson(
+        "https://app.splatoon2.nintendo.net/api/results/" +
+        str(buttleNumber),
+        getJsonOptionCode
+    )
+    # jsonData = readTemplateJson()
+    statUploader.statUpload(
+        jsonData
+    )
+    # saveSingleResult(getJson("https://app.splatoon2.nintendo.net/api/results"))
 
     # こっちはAPI叩きすぎ防止用，すでにPCに保存済みの過去の戦績データから適当に取得
     # dic, rule = getNewestButtleResult(readTemplateJson())

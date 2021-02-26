@@ -3,16 +3,15 @@ from PIL import ImageFont, ImageDraw, Image
 import numpy as np
 import time
 import urlKnocker
+import json
 
-# fontpath ='C:/Users/poly_Z/AppData/Local/Microsoft/Windows/Fonts/cinecaption226.ttf'
 # font = ImageFont.truetype(fontpath, 30)
 # fontmini = ImageFont.truetype(fontpath, 20)
 
 
-def print4imgBlank(newInputTxt: str, printlog: list, base):
+def print4imgBlank(newInputTxt: str, printlog: list, base, fontpath: str):
     width, height, sep = windowSize()
-    # fontpath ='C:/Users/poly_Z/AppData/Local/Microsoft/Windows/Fonts/cinecaption226.ttf'
-    fontpath = 'C:/Users/poly_Z/AppData/Local/Microsoft/Windows/Fonts/RocknRollOne-Regular.ttf'
+    # fontpath = 'C:/Users/poly_Z/AppData/Local/Microsoft/Windows/Fonts/RocknRollOne-Regular.ttf'
     font = ImageFont.truetype(fontpath, 25)
     printlog.append(newInputTxt)
     print(printlog, len(printlog))
@@ -38,12 +37,13 @@ def print4imgBlank(newInputTxt: str, printlog: list, base):
     return printlog, outputImg
 
 
-def printButtleResult(result: dict, rule: int, base):
+def printButtleResult(result: dict, rule: int, base, fontpath: str):
     width, height, sep = windowSize()
     # fontpath ='C:/Users/poly_Z/AppData/Local/Microsoft/Windows/Fonts/cinecaption226.ttf'
     # fontpath ='C:/Users/poly_Z/AppData/Local/Microsoft/Windows/Fonts/x8y12pxTheStrongGamer.ttf'
     # fontpath ='C:/Users/poly_Z/AppData/Local/Microsoft/Windows/Fonts/memoir-square.otf'
-    fontpath = 'C:/Users/poly_Z/AppData/Local/Microsoft/Windows/Fonts/RocknRollOne-Regular.ttf'
+
+    # fontpath = 'C:/Users/poly_Z/AppData/Local/Microsoft/Windows/Fonts/RocknRollOne-Regular.ttf'
     fontmini = ImageFont.truetype(fontpath, 20)
     fontmiddle = ImageFont.truetype(fontpath, 24)
     fontbig = ImageFont.truetype(fontpath, 32)
@@ -153,8 +153,8 @@ def windowSize():
 
 
 if __name__ == "__main__":
-    img_blank = cv2.imread(
-        "D:/Users/poly_Z/Documents/splatmusicprj/cv2Pictures/blank.png", 0)
+    filepath_f = open('./filepath.json', 'r')
+    filepath_json_dict = json.load(filepath_f)
     blankLogtxt = []
     wid, hei, sep = windowSize()
     baseImg = np.zeros([hei, wid, 3])
