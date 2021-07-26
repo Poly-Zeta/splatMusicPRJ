@@ -15,7 +15,7 @@ def print4imgBlank(newInputTxt: str, printlog: list, base, fontpath: str):
     font = ImageFont.truetype(fontpath, 25)
     printlog.append(newInputTxt)
     print(printlog, len(printlog))
-    while(len(printlog) > 7):
+    while(len(printlog) > 6):
         printlog = printlog[1:]
     # outputImg=np.zeros([200,1000,3])
     outputImg = base
@@ -75,6 +75,11 @@ def printButtleResult(result: dict, rule: int, base, fontpath: str):
         drawRuleAndStage(draw, result, fontbig)
         drawPaint(draw, result, fontbig, fontmiddle)
         drawButtleScore(draw, result, fontmini)
+    elif(rule == 4):
+        drawRuleAndStage(draw, result, fontbig)
+        drawCount(draw, result, fontbig, fontmiddle)
+        drawXP(draw, result, fontmiddle)
+        drawButtleScore(draw, result, fontmini)
     outputImg = np.array(img_pil)
     cv2.imshow("frame", outputImg)
     return outputImg
@@ -118,6 +123,11 @@ def drawLP(draw, result, fontmiddle):
         result["ourlp"])+"   ENEMY LP:"+str(result["enemylp"]), font=fontmiddle, fill=(150, 150, 150, 0))
 
 
+def drawXP(draw, result, fontmiddle):
+    draw.text((3, 50), "NOW XP:"+str(result["xp"])+"   ESTIMATE XP:"+str(
+        result["estimateXp"]), font=fontmiddle, fill=(150, 150, 150, 0))
+
+
 def drawButtleScore(draw, result, fontmini):
     width, height, sep = windowSize()
     ybase = 90
@@ -146,24 +156,25 @@ def drawEnemyButtleScore(draw, result, fontmini, posX, posY, shift, playerNum):
 
 
 def windowSize():
-    width = 1250
+    width = 1500
     height = 200
-    sep = 930
+    sep = 1140
     return width, height, sep
 
 
 if __name__ == "__main__":
     filepath_f = open('./filepath.json', 'r')
     filepath_json_dict = json.load(filepath_f)
+    viewerFontPath = filepath_json_dict["rocknrollone_font"]
     blankLogtxt = []
     wid, hei, sep = windowSize()
     baseImg = np.zeros([hei, wid, 3])
-    for i in range(3):
+    for i in range(1):
         blankLogtxt, baseImg = print4imgBlank(
-            "LABEL:endolphinsurge", blankLogtxt, baseImg)
+            "LABEL:endolphinsurge", blankLogtxt, baseImg, viewerFontPath)
         cv2.waitKey(0)
-    for i in range(10):
+    for i in range(1):
         dic, rule = urlKnocker.getNewestButtleResult(
-            urlKnocker.readTemplateJson())
-        baseImg = printButtleResult(dic, rule, baseImg)
+            urlKnocker.readTemplateJson(), 200)
+        baseImg = printButtleResult(dic, rule, baseImg, viewerFontPath)
         cv2.waitKey(0)

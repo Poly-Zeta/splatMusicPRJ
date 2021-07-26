@@ -89,6 +89,42 @@ def getNewestButtleResult(jsonData, code):
         d = {}
         c = -1
     elif(jsonData["type"] == "league"):  # リグマ
+        myTeamLog = [
+            {
+                "name": jsonData["player_result"]["player"]["nickname"],
+                "kill":jsonData["player_result"]["kill_count"],
+                "assist":jsonData["player_result"]["assist_count"],
+                "death":jsonData["player_result"]["death_count"],
+                "sp":jsonData["player_result"]["special_count"],
+                "paint":jsonData["player_result"]["game_paint_point"],
+                "weapon":jsonData["player_result"]["player"]["weapon"]["name"]
+            }
+        ]
+        enemyTeamLog = []
+        for i in range(len(jsonData["my_team_members"])):
+            myTeamLog.append(
+                {
+                    "name": jsonData["my_team_members"][i]["player"]["nickname"],
+                    "kill": jsonData["my_team_members"][i]["kill_count"],
+                    "assist": jsonData["my_team_members"][i]["assist_count"],
+                    "death": jsonData["my_team_members"][i]["death_count"],
+                    "sp": jsonData["my_team_members"][i]["special_count"],
+                    "paint": jsonData["my_team_members"][i]["game_paint_point"],
+                    "weapon": jsonData["my_team_members"][i]["player"]["weapon"]["name"]
+                },
+            )
+        for i in range(len(jsonData["other_team_members"])):
+            enemyTeamLog.append(
+                {
+                    "name": jsonData["other_team_members"][i]["player"]["nickname"],
+                    "kill": jsonData["other_team_members"][i]["kill_count"],
+                    "assist": jsonData["other_team_members"][i]["assist_count"],
+                    "death": jsonData["other_team_members"][i]["death_count"],
+                    "sp": jsonData["other_team_members"][i]["special_count"],
+                    "paint": jsonData["other_team_members"][i]["game_paint_point"],
+                    "weapon": jsonData["other_team_members"][i]["player"]["weapon"]["name"]
+                },
+            )
         d = {
             "mode": jsonData["game_mode"]["name"],
             "rule": jsonData["rule"]["name"],
@@ -99,82 +135,84 @@ def getNewestButtleResult(jsonData, code):
             "ourmaxlp": jsonData["max_league_point"],
             "ourlp": jsonData["league_point"],
             "enemylp": jsonData["other_estimate_league_point"],
-            "ourlog": [
-                {
-                    "name": jsonData["player_result"]["player"]["nickname"],
-                    "kill":jsonData["player_result"]["kill_count"],
-                    "assist":jsonData["player_result"]["assist_count"],
-                    "death":jsonData["player_result"]["death_count"],
-                    "sp":jsonData["player_result"]["special_count"],
-                    "paint":jsonData["player_result"]["game_paint_point"],
-                    "weapon":jsonData["player_result"]["player"]["weapon"]["name"]
-                },
-                {
-                    "name": jsonData["my_team_members"][0]["player"]["nickname"],
-                    "kill":jsonData["my_team_members"][0]["kill_count"],
-                    "assist":jsonData["my_team_members"][0]["assist_count"],
-                    "death":jsonData["my_team_members"][0]["death_count"],
-                    "sp":jsonData["my_team_members"][0]["special_count"],
-                    "paint":jsonData["my_team_members"][0]["game_paint_point"],
-                    "weapon":jsonData["my_team_members"][0]["player"]["weapon"]["name"]
-                },
-                {
-                    "name": jsonData["my_team_members"][1]["player"]["nickname"],
-                    "kill":jsonData["my_team_members"][1]["kill_count"],
-                    "assist":jsonData["my_team_members"][1]["assist_count"],
-                    "death":jsonData["my_team_members"][1]["death_count"],
-                    "sp":jsonData["my_team_members"][1]["special_count"],
-                    "paint":jsonData["my_team_members"][1]["game_paint_point"],
-                    "weapon":jsonData["my_team_members"][1]["player"]["weapon"]["name"]
-                },
-                {
-                    "name": jsonData["my_team_members"][2]["player"]["nickname"],
-                    "kill":jsonData["my_team_members"][2]["kill_count"],
-                    "assist":jsonData["my_team_members"][2]["assist_count"],
-                    "death":jsonData["my_team_members"][2]["death_count"],
-                    "sp":jsonData["my_team_members"][2]["special_count"],
-                    "paint":jsonData["my_team_members"][2]["game_paint_point"],
-                    "weapon":jsonData["my_team_members"][2]["player"]["weapon"]["name"]
-                }
-            ],
-            "enemylog": [
-                {
-                    "name": jsonData["other_team_members"][0]["player"]["nickname"],
-                    "kill":jsonData["other_team_members"][0]["kill_count"],
-                    "assist":jsonData["other_team_members"][0]["assist_count"],
-                    "death":jsonData["other_team_members"][0]["death_count"],
-                    "sp":jsonData["other_team_members"][0]["special_count"],
-                    "paint":jsonData["other_team_members"][0]["game_paint_point"],
-                    "weapon":jsonData["other_team_members"][0]["player"]["weapon"]["name"]
-                },
-                {
-                    "name": jsonData["other_team_members"][1]["player"]["nickname"],
-                    "kill":jsonData["other_team_members"][1]["kill_count"],
-                    "assist":jsonData["other_team_members"][1]["assist_count"],
-                    "death":jsonData["other_team_members"][1]["death_count"],
-                    "sp":jsonData["other_team_members"][1]["special_count"],
-                    "paint":jsonData["other_team_members"][1]["game_paint_point"],
-                    "weapon":jsonData["other_team_members"][1]["player"]["weapon"]["name"]
-                },
-                {
-                    "name": jsonData["other_team_members"][2]["player"]["nickname"],
-                    "kill":jsonData["other_team_members"][2]["kill_count"],
-                    "assist":jsonData["other_team_members"][2]["assist_count"],
-                    "death":jsonData["other_team_members"][2]["death_count"],
-                    "sp":jsonData["other_team_members"][2]["special_count"],
-                    "paint":jsonData["other_team_members"][2]["game_paint_point"],
-                    "weapon":jsonData["other_team_members"][2]["player"]["weapon"]["name"]
-                },
-                {
-                    "name": jsonData["other_team_members"][3]["player"]["nickname"],
-                    "kill":jsonData["other_team_members"][3]["kill_count"],
-                    "assist":jsonData["other_team_members"][3]["assist_count"],
-                    "death":jsonData["other_team_members"][3]["death_count"],
-                    "sp":jsonData["other_team_members"][3]["special_count"],
-                    "paint":jsonData["other_team_members"][3]["game_paint_point"],
-                    "weapon":jsonData["other_team_members"][3]["player"]["weapon"]["name"]
-                },
-            ]
+            "ourlog": myTeamLog            # [
+            #     {
+            #         "name": jsonData["player_result"]["player"]["nickname"],
+            #         "kill":jsonData["player_result"]["kill_count"],
+            #         "assist":jsonData["player_result"]["assist_count"],
+            #         "death":jsonData["player_result"]["death_count"],
+            #         "sp":jsonData["player_result"]["special_count"],
+            #         "paint":jsonData["player_result"]["game_paint_point"],
+            #         "weapon":jsonData["player_result"]["player"]["weapon"]["name"]
+            #     },
+            #     {
+            #         "name": jsonData["my_team_members"][0]["player"]["nickname"],
+            #         "kill":jsonData["my_team_members"][0]["kill_count"],
+            #         "assist":jsonData["my_team_members"][0]["assist_count"],
+            #         "death":jsonData["my_team_members"][0]["death_count"],
+            #         "sp":jsonData["my_team_members"][0]["special_count"],
+            #         "paint":jsonData["my_team_members"][0]["game_paint_point"],
+            #         "weapon":jsonData["my_team_members"][0]["player"]["weapon"]["name"]
+            #     },
+            #     {
+            #         "name": jsonData["my_team_members"][1]["player"]["nickname"],
+            #         "kill":jsonData["my_team_members"][1]["kill_count"],
+            #         "assist":jsonData["my_team_members"][1]["assist_count"],
+            #         "death":jsonData["my_team_members"][1]["death_count"],
+            #         "sp":jsonData["my_team_members"][1]["special_count"],
+            #         "paint":jsonData["my_team_members"][1]["game_paint_point"],
+            #         "weapon":jsonData["my_team_members"][1]["player"]["weapon"]["name"]
+            #     },
+            #     {
+            #         "name": jsonData["my_team_members"][2]["player"]["nickname"],
+            #         "kill":jsonData["my_team_members"][2]["kill_count"],
+            #         "assist":jsonData["my_team_members"][2]["assist_count"],
+            #         "death":jsonData["my_team_members"][2]["death_count"],
+            #         "sp":jsonData["my_team_members"][2]["special_count"],
+            #         "paint":jsonData["my_team_members"][2]["game_paint_point"],
+            #         "weapon":jsonData["my_team_members"][2]["player"]["weapon"]["name"]
+            #     }
+            # ]
+            ,
+            "enemylog": enemyTeamLog
+            # [
+            #     {
+            #         "name": jsonData["other_team_members"][0]["player"]["nickname"],
+            #         "kill":jsonData["other_team_members"][0]["kill_count"],
+            #         "assist":jsonData["other_team_members"][0]["assist_count"],
+            #         "death":jsonData["other_team_members"][0]["death_count"],
+            #         "sp":jsonData["other_team_members"][0]["special_count"],
+            #         "paint":jsonData["other_team_members"][0]["game_paint_point"],
+            #         "weapon":jsonData["other_team_members"][0]["player"]["weapon"]["name"]
+            #     },
+            #     {
+            #         "name": jsonData["other_team_members"][1]["player"]["nickname"],
+            #         "kill":jsonData["other_team_members"][1]["kill_count"],
+            #         "assist":jsonData["other_team_members"][1]["assist_count"],
+            #         "death":jsonData["other_team_members"][1]["death_count"],
+            #         "sp":jsonData["other_team_members"][1]["special_count"],
+            #         "paint":jsonData["other_team_members"][1]["game_paint_point"],
+            #         "weapon":jsonData["other_team_members"][1]["player"]["weapon"]["name"]
+            #     },
+            #     {
+            #         "name": jsonData["other_team_members"][2]["player"]["nickname"],
+            #         "kill":jsonData["other_team_members"][2]["kill_count"],
+            #         "assist":jsonData["other_team_members"][2]["assist_count"],
+            #         "death":jsonData["other_team_members"][2]["death_count"],
+            #         "sp":jsonData["other_team_members"][2]["special_count"],
+            #         "paint":jsonData["other_team_members"][2]["game_paint_point"],
+            #         "weapon":jsonData["other_team_members"][2]["player"]["weapon"]["name"]
+            #     },
+            #     {
+            #         "name": jsonData["other_team_members"][3]["player"]["nickname"],
+            #         "kill":jsonData["other_team_members"][3]["kill_count"],
+            #         "assist":jsonData["other_team_members"][3]["assist_count"],
+            #         "death":jsonData["other_team_members"][3]["death_count"],
+            #         "sp":jsonData["other_team_members"][3]["special_count"],
+            #         "paint":jsonData["other_team_members"][3]["game_paint_point"],
+            #         "weapon":jsonData["other_team_members"][3]["player"]["weapon"]["name"]
+            #     },
+            # ]
         }
         c = 0
     elif(jsonData["game_mode"]["key"] == "private"):  # プラベ
@@ -436,6 +474,106 @@ def getNewestButtleResult(jsonData, code):
             ]
         }
         c = 3
+    elif(jsonData["type"] == "gachi"):  # ガチマ
+        d = {
+            "mode": jsonData["game_mode"]["name"],
+            "rule": jsonData["rule"]["name"],
+            "stage": jsonData["stage"]["name"],
+            "vicordef": jsonData["my_team_result"]["name"],
+            "ourcount": jsonData["my_team_count"],
+            "enemycount": jsonData["other_team_count"],
+            "xp": jsonData["x_power"],
+            "estimateXp": jsonData["estimate_x_power"],
+            # if results["udemae"]["is_x"]:  # == true. results["udemae"]["number"] should be 128
+            #     # can be null if not played placement games
+            #     payload["x_power_after"] = results["x_power"]
+            #     if mode == "gachi":
+            #         # team power, approx
+            #         payload["estimate_x_power"] = results["estimate_x_power"]
+            #     # goes below 500, not sure how low (doesn't exist in league)
+            #     payload["worldwide_rank"] = results["rank"]
+            # # top_500 from crown_players set in scoreboard method
+            #     "ourmaxlp": jsonData["max_league_point"],
+            #     "ourlp": jsonData["league_point"],
+            #     "enemylp": jsonData["other_estimate_league_point"],
+            "ourlog": [
+                {
+                    "name": jsonData["player_result"]["player"]["nickname"],
+                    "kill":jsonData["player_result"]["kill_count"],
+                    "assist":jsonData["player_result"]["assist_count"],
+                    "death":jsonData["player_result"]["death_count"],
+                    "sp":jsonData["player_result"]["special_count"],
+                    "paint":jsonData["player_result"]["game_paint_point"],
+                    "weapon":jsonData["player_result"]["player"]["weapon"]["name"]
+                },
+                {
+                    "name": jsonData["my_team_members"][0]["player"]["nickname"],
+                    "kill":jsonData["my_team_members"][0]["kill_count"],
+                    "assist":jsonData["my_team_members"][0]["assist_count"],
+                    "death":jsonData["my_team_members"][0]["death_count"],
+                    "sp":jsonData["my_team_members"][0]["special_count"],
+                    "paint":jsonData["my_team_members"][0]["game_paint_point"],
+                    "weapon":jsonData["my_team_members"][0]["player"]["weapon"]["name"]
+                },
+                {
+                    "name": jsonData["my_team_members"][1]["player"]["nickname"],
+                    "kill":jsonData["my_team_members"][1]["kill_count"],
+                    "assist":jsonData["my_team_members"][1]["assist_count"],
+                    "death":jsonData["my_team_members"][1]["death_count"],
+                    "sp":jsonData["my_team_members"][1]["special_count"],
+                    "paint":jsonData["my_team_members"][1]["game_paint_point"],
+                    "weapon":jsonData["my_team_members"][1]["player"]["weapon"]["name"]
+                },
+                {
+                    "name": jsonData["my_team_members"][2]["player"]["nickname"],
+                    "kill":jsonData["my_team_members"][2]["kill_count"],
+                    "assist":jsonData["my_team_members"][2]["assist_count"],
+                    "death":jsonData["my_team_members"][2]["death_count"],
+                    "sp":jsonData["my_team_members"][2]["special_count"],
+                    "paint":jsonData["my_team_members"][2]["game_paint_point"],
+                    "weapon":jsonData["my_team_members"][2]["player"]["weapon"]["name"]
+                }
+            ],
+            "enemylog": [
+                {
+                    "name": jsonData["other_team_members"][0]["player"]["nickname"],
+                    "kill":jsonData["other_team_members"][0]["kill_count"],
+                    "assist":jsonData["other_team_members"][0]["assist_count"],
+                    "death":jsonData["other_team_members"][0]["death_count"],
+                    "sp":jsonData["other_team_members"][0]["special_count"],
+                    "paint":jsonData["other_team_members"][0]["game_paint_point"],
+                    "weapon":jsonData["other_team_members"][0]["player"]["weapon"]["name"]
+                },
+                {
+                    "name": jsonData["other_team_members"][1]["player"]["nickname"],
+                    "kill":jsonData["other_team_members"][1]["kill_count"],
+                    "assist":jsonData["other_team_members"][1]["assist_count"],
+                    "death":jsonData["other_team_members"][1]["death_count"],
+                    "sp":jsonData["other_team_members"][1]["special_count"],
+                    "paint":jsonData["other_team_members"][1]["game_paint_point"],
+                    "weapon":jsonData["other_team_members"][1]["player"]["weapon"]["name"]
+                },
+                {
+                    "name": jsonData["other_team_members"][2]["player"]["nickname"],
+                    "kill":jsonData["other_team_members"][2]["kill_count"],
+                    "assist":jsonData["other_team_members"][2]["assist_count"],
+                    "death":jsonData["other_team_members"][2]["death_count"],
+                    "sp":jsonData["other_team_members"][2]["special_count"],
+                    "paint":jsonData["other_team_members"][2]["game_paint_point"],
+                    "weapon":jsonData["other_team_members"][2]["player"]["weapon"]["name"]
+                },
+                {
+                    "name": jsonData["other_team_members"][3]["player"]["nickname"],
+                    "kill":jsonData["other_team_members"][3]["kill_count"],
+                    "assist":jsonData["other_team_members"][3]["assist_count"],
+                    "death":jsonData["other_team_members"][3]["death_count"],
+                    "sp":jsonData["other_team_members"][3]["special_count"],
+                    "paint":jsonData["other_team_members"][3]["game_paint_point"],
+                    "weapon":jsonData["other_team_members"][3]["player"]["weapon"]["name"]
+                },
+            ]
+        }
+        c = 4
     return d, c
 
 
