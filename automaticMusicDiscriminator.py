@@ -139,13 +139,15 @@ print("setup ready")
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
     "CAM SETUP", blankLogtxt, baseImg, viewerFontPath)
 # カメラ設定
-cap = cv2.VideoCapture(1)  # キャプボ
+cap = cv2.VideoCapture(2)  # キャプボ
 print(cap.isOpened())
 width = 728  # リサイズ設定
 height = 410  # リサイズ設定
 threshold = 220  # 2値化閾値
 img_start = cv2.imread(
     filepath_json_dict["start_thresh_picture"], 0)  # 開始点検知対象画像
+img_white = cv2.imread(
+    filepath_json_dict["start_thresh_white_picture"], 0)  # 開始点検知対象画像
 img_end = cv2.imread(
     filepath_json_dict["finish_thresh_picture"], 0)
 # img_start = cv2.imread(
@@ -156,6 +158,8 @@ img_end = cv2.imread(
 
 # 検知用に成形しておく
 img_start = cv2.resize(img_start, (width, height))
+ret, img_start = cv2.threshold(img_start, 200, 255, cv2.THRESH_BINARY)
+img_white = cv2.resize(img_white, (width, height))
 # ret,img_start=cv2.threshold(img_start, threshold, 255, cv2.THRESH_BINARY)
 img_end = cv2.resize(img_end, (width, height))
 # cv2.imshow('frame',img_end)
@@ -180,179 +184,382 @@ blankLogtxt, baseImg = widgetWindow.print4imgBlank(
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
     "MANUAL START:S", blankLogtxt, baseImg, viewerFontPath)
 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-    "MANUAL ITRPT:Ctrl+C", blankLogtxt, baseImg, viewerFontPath)
+    "MANUAL ITRPT:I", blankLogtxt, baseImg, viewerFontPath)
 # cv2.imshow('frame',img_blank_c)#->ただの画像でもキー入力受けてくれるので，画面表示多分こっちのがいい
 mainLoopCounter = 0
 getJsonOptionCode = 200
-while 1:
-    try:
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        continue
+    frame = cv2.resize(frame, (width, height))
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    ret, chk = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)
+    preFilter = np.count_nonzero(252 < chk)
+    if(298470 < preFilter):
+        print(str(preFilter)+"cancel")
+        continue
+    # gray[img_start == 0] = gray[img_start == 0]/255.0*230.0
+    gray[img_start == 0] = 0
+    ret, gray = cv2.threshold(gray, 230, 255, cv2.THRESH_BINARY)
+    # cv2.imshow('movie', gray)
+
+    colchk = np.count_nonzero(gray == img_start)
+    print(colchk)  # printでログが荒れるのはわかってるけどなぜか無いと安定しない
+    cv2InputKey = cv2.waitKey(1) & 0xFF
+    if((colchk > 286500) or (cv2InputKey == ord('s'))):
+        # if((colchk > 279200) or (cv2InputKey == ord('s'))):
+        # cap.release()  # お試し
+        # if((np.count_nonzero(gray==img_start)>285000) or (cv2.waitKey(1) & 0xFF == ord('s'))):
+        frames = []
+
+        # お試し
+        stream = pa.open(
+            format=FORMAT,
+            channels=CHANNELS,
+            rate=RATE,
+            input=True,
+            input_device_index=DEVICE_INDEX,
+            frames_per_buffer=CHUNK
+        )
+        print("stream ready")
+        print("game start")
+        print("recording ...")
+        for i in range(0, int(RATE / CHUNK * recTime)):
+            data = stream.read(CHUNK)
+            frames.append(data)
+        print("done.")
+        stream.stop_stream()
+        stream.close()
+
+        blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+            "DONE", blankLogtxt, baseImg, viewerFontPath)
+        if(cv2InputKey == ord('s')):
+            blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+                "MANUAL START", blankLogtxt, baseImg, viewerFontPath)
+        wf = wave.open(audio_output_path+str(samplingCounter)+".wav", 'wb')
+        wf.setnchannels(CHANNELS)
+
+        # お試し
+        # wf.setsampwidth(p.get_sample_size(FORMAT))
+        wf.setsampwidth(pa.get_sample_size(FORMAT))
+
+        wf.setframerate(RATE)
+        wf.writeframes(b''.join(frames))
+        wf.close()
+        x, fs = librosa.load(audio_output_path+str(samplingCounter)+".wav")
+        out = librosa.feature.melspectrogram(x, sr=fs)
+        fig = plt.figure()
+        librosa.display.specshow(out, sr=fs)
+        fig.savefig(image_output_path+".png")
+        plt.close()
+
+        # print("hello CUDA")
+        X = []
+        Y = []
+        image = Image.open(image_output_path+".png")
+        image = image.convert("RGB")
+        image = image.resize((image_size, image_size))
+        data = np.asarray(image)
+        X.append(data)
+        X = np.array(X)
+        X = X.astype('float32')
+        X = X / 255.0
+        pred = model.predict(X)
         ret, frame = cap.read()
-        frame = cv2.resize(frame, (width, height))
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        ret, gray = cv2.threshold(gray, 230, 255, cv2.THRESH_BINARY)
-        colchk = np.count_nonzero(gray == img_start)
-        print(colchk)  # printでログが荒れるのはわかってるけどなぜか無いと安定しない
-        cv2InputKey = cv2.waitKey(1) & 0xFF
-        # if((colchk > 280000) or (cv2.waitKey(1) & 0xFF == ord('s'))):
-        if((colchk > 279500) or (cv2InputKey == ord('s'))):
-            # cap.release()  # お試し
-            # if((np.count_nonzero(gray==img_start)>285000) or (cv2.waitKey(1) & 0xFF == ord('s'))):
-            frames = []
-
-            # お試し
-            stream = pa.open(
-                format=FORMAT,
-                channels=CHANNELS,
-                rate=RATE,
-                # output_device_index = DEVICE_INDEX_O,
-                input=True,
-                # output=True,
-                input_device_index=DEVICE_INDEX,
-                frames_per_buffer=CHUNK
-            )
-            # p = pyaudio.PyAudio()
-            # stream = p.open(
-            #     format=FORMAT,
-            #     channels=CHANNELS,
-            #     rate=RATE,
-            #     # output_device_index = DEVICE_INDEX_O,
-            #     input=True,
-            #     # output=True,
-            #     input_device_index=DEVICE_INDEX,
-            #     frames_per_buffer=CHUNK
-            # )
-
-            # cv2.destroyAllWindows()
-            # cv2.imshow('frame',img_start)
-            # cap.release()
-            # cv2.destroyAllWindows()
-            print("stream ready")
-            print("game start")
-            print("recording ...")
-            for i in range(0, int(RATE / CHUNK * recTime)):
-                data = stream.read(CHUNK)
-                frames.append(data)
-            print("done.")
-            stream.stop_stream()
-            stream.close()
-
-            # お試し
-            # p.terminate()
-            # pa.terminate()
-
-            blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "DONE", blankLogtxt, baseImg, viewerFontPath)
-            wf = wave.open(audio_output_path+str(samplingCounter)+".wav", 'wb')
-            wf.setnchannels(CHANNELS)
-
-            # お試し
-            # wf.setsampwidth(p.get_sample_size(FORMAT))
-            wf.setsampwidth(pa.get_sample_size(FORMAT))
-
-            wf.setframerate(RATE)
-            wf.writeframes(b''.join(frames))
-            wf.close()
-            x, fs = librosa.load(audio_output_path+str(samplingCounter)+".wav")
-            out = librosa.feature.melspectrogram(x, sr=fs)
-            fig = plt.figure()
-            librosa.display.specshow(out, sr=fs)
-            fig.savefig(image_output_path+".png")
-            plt.close()
-
-            # print("hello CUDA")
-            X = []
-            Y = []
-            image = Image.open(image_output_path+".png")
-            image = image.convert("RGB")
-            image = image.resize((image_size, image_size))
-            data = np.asarray(image)
-            X.append(data)
-            X = np.array(X)
-            X = X.astype('float32')
-            X = X / 255.0
-            pred = model.predict(X)
+        score = np.max(pred)
+        pred_label = label[np.argmax(pred[0])]
+        blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+            'LABEL:'+pred_label, blankLogtxt, baseImg, viewerFontPath)
+        blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+            'SCORE:'+str(score), blankLogtxt, baseImg, viewerFontPath)
+        print('choiceName:', pred_label)
+        print('score:', score)
+        os.rename(audio_output_path+str(samplingCounter)+".wav", audio_output_path+str(
+            datetime.datetime.now().strftime('%y%m%d%H%M%S'))+str(samplingCounter)+pred_label+".wav")
+        samplingCounter = samplingCounter+1
+        blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+            "SEARCHING 'FINISH'", blankLogtxt, baseImg, viewerFontPath)
+        blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+            "MANUAL END:E", blankLogtxt, baseImg, viewerFontPath)
+        print("Press e Key...")
+        while cap.isOpened():
             ret, frame = cap.read()
-            score = np.max(pred)
-            pred_label = label[np.argmax(pred[0])]
-            # print("accName:",randomAcc)
-            blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                'LABEL:'+pred_label, blankLogtxt, baseImg, viewerFontPath)
-            blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                'SCORE:'+str(score), blankLogtxt, baseImg, viewerFontPath)
-            print('choiceName:', pred_label)
-            print('score:', score)
-            os.rename(audio_output_path+str(samplingCounter)+".wav", audio_output_path+str(
-                datetime.datetime.now().strftime('%y%m%d%H%M%S'))+str(samplingCounter)+pred_label+".wav")
-            samplingCounter = samplingCounter+1
-            blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "SEARCHING 'FINISH'", blankLogtxt, baseImg, viewerFontPath)
-            blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "MANUAL END:E", blankLogtxt, baseImg, viewerFontPath)
-            print("Press e Key...")
-            # cap = cv2.VideoCapture(1)  # お試し
-            while 1:
-                ret, frame = cap.read()
-                frame = cv2.resize(frame, (width, height))
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                ret, gray = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
-                compareGrey = np.count_nonzero(gray == img_end)
-                print(compareGrey)
-                cv2InputKey = cv2.waitKey(1) & 0xFF
-                if ((compareGrey > 266300) or (cv2InputKey == ord('e'))):
+            frame = cv2.resize(frame, (width, height))
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            cv2.imshow('movie', gray)
+            ret, gray = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+            compareGrey = np.count_nonzero(gray == img_end)
+            print(compareGrey)
+            cv2InputKey = cv2.waitKey(1) & 0xFF
+            if ((compareGrey > 266000) or (cv2InputKey == ord('e'))):
+                if(cv2InputKey == ord('e')):
                     blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                        "GAME END", blankLogtxt, baseImg, viewerFontPath)
-                    print("game end")
-                    break
-                elif (cv2InputKey == ord('i')):
-                    print("manual exit")
+                        "MANUAL END", blankLogtxt, baseImg, viewerFontPath)
+                blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+                    "GAME END", blankLogtxt, baseImg, viewerFontPath)
+                print("game end")
+                break
+            elif (cv2InputKey == ord('i')):
+                print("manual exit")
+                if cap.isOpened():
                     cap.release()
-                    cv2.destroyAllWindows()
-                    stream.stop_stream()
-                    stream.close()
-                    # p.terminate()
-                    pa.terminate()
-                    gc.collect()
-                    print("end")
-                    exit()
-            # cv2.destroyAllWindows()
-            # cv2.imshow('frame',img_end)
-            # stream.stop_stream()
-            # stream.close()
-            # p.terminate()
-            blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "SEARCHING 'GO!'", blankLogtxt, baseImg, viewerFontPath)
-            blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "MANUAL START:S", blankLogtxt, baseImg, viewerFontPath)
-            blankLogtxt, baseImg = widgetWindow.print4imgBlank(
-                "MANUAL ITRPT:Ctrl+C", blankLogtxt, baseImg, viewerFontPath)
+                cv2.destroyAllWindows()
+                stream.stop_stream()
+                stream.close()
+                pa.terminate()
+                gc.collect()
+                print("end")
+                exit()
+        blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+            "SEARCHING 'GO!'", blankLogtxt, baseImg, viewerFontPath)
+        blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+            "MANUAL START:S", blankLogtxt, baseImg, viewerFontPath)
+        blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+            "MANUAL ITRPT:I", blankLogtxt, baseImg, viewerFontPath)
 
-            baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
-                baseImg, getJsonOptionCode, 16, viewerFontPath, YOUR_COOKIE, API_KEY)
-            gc.collect()  # お試し
-            print("next")
-        elif (cv2InputKey == ord('u')):
-            print("manual update")
-            baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
-                baseImg, getJsonOptionCode, 3, viewerFontPath, YOUR_COOKIE, API_KEY)
-            gc.collect()
-        elif (cv2InputKey == ord('i')):
-            print("manual exit")
-            cap.release()
-            cv2.destroyAllWindows()
-            stream.stop_stream()
-            stream.close()
-            # p.terminate()
-            pa.terminate()
-            gc.collect()
-            print("end")
-            exit()
-    except KeyboardInterrupt:
+        # baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
+        #     baseImg, getJsonOptionCode, 17, viewerFontPath, YOUR_COOKIE, API_KEY)
+
+        # gc.collect()  # お試し
         cap.release()
+        img_start = cv2.imread(
+            filepath_json_dict["start_thresh_picture"], 0)  # 開始点検知対象画像
+        img_start = cv2.resize(img_start, (width, height))
+        ret, img_start = cv2.threshold(img_start, 200, 255, cv2.THRESH_BINARY)
+        cap = cv2.VideoCapture(2)  # キャプボ
+
+        baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
+            baseImg, getJsonOptionCode, 12, viewerFontPath, YOUR_COOKIE, API_KEY)
+        print("next")
+    elif (cv2InputKey == ord('u')):
+        print("manual update")
+        baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
+            baseImg, getJsonOptionCode, 3, viewerFontPath, YOUR_COOKIE, API_KEY)
+
+        gc.collect()
+    elif (cv2InputKey == ord('i')):
+        print("manual exit")
+        if cap.isOpened():
+            cap.release()
         cv2.destroyAllWindows()
         stream.stop_stream()
         stream.close()
-        # p.terminate()
         pa.terminate()
         gc.collect()
         print("end")
-        break
+        exit()
+    else:
+        cv2.imshow('movie', gray)
+    # try:
+    #     ret, frame = cap.read()
+    #     frame = cv2.resize(frame, (width, height))
+    #     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    #     ret, chk = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)
+    #     preFilter = np.count_nonzero(252 < chk)
+    #     if(298470 < preFilter):
+    #         print(str(preFilter)+"cancel")
+    #         continue
+    #     gray[img_start == 0] = gray[img_start == 0]/255.0*230.0
+    #     ret, gray = cv2.threshold(gray, 230, 255, cv2.THRESH_BINARY)
+    #     cv2.imshow('movie', gray)
+
+    #     colchk = np.count_nonzero(gray == img_start)
+    #     print(colchk)  # printでログが荒れるのはわかってるけどなぜか無いと安定しない
+    #     cv2InputKey = cv2.waitKey(1) & 0xFF
+    #     # if((colchk > 280000) or (cv2.waitKey(1) & 0xFF == ord('s'))):
+    #     if((colchk > 286500) or (cv2InputKey == ord('s'))):
+    #         # if((colchk > 279200) or (cv2InputKey == ord('s'))):
+    #         # cap.release()  # お試し
+    #         # if((np.count_nonzero(gray==img_start)>285000) or (cv2.waitKey(1) & 0xFF == ord('s'))):
+    #         frames = []
+
+    #         # お試し
+    #         stream = pa.open(
+    #             format=FORMAT,
+    #             channels=CHANNELS,
+    #             rate=RATE,
+    #             # output_device_index = DEVICE_INDEX_O,
+    #             input=True,
+    #             # output=True,
+    #             input_device_index=DEVICE_INDEX,
+    #             frames_per_buffer=CHUNK
+    #         )
+    #         # p = pyaudio.PyAudio()
+    #         # stream = p.open(
+    #         #     format=FORMAT,
+    #         #     channels=CHANNELS,
+    #         #     rate=RATE,
+    #         #     # output_device_index = DEVICE_INDEX_O,
+    #         #     input=True,
+    #         #     # output=True,
+    #         #     input_device_index=DEVICE_INDEX,
+    #         #     frames_per_buffer=CHUNK
+    #         # )
+
+    #         # cv2.destroyAllWindows()
+    #         # cv2.imshow('frame',img_start)
+    #         # cap.release()
+    #         # cv2.destroyAllWindows()
+    #         print("stream ready")
+    #         print("game start")
+    #         print("recording ...")
+    #         for i in range(0, int(RATE / CHUNK * recTime)):
+    #             data = stream.read(CHUNK)
+    #             frames.append(data)
+    #         print("done.")
+    #         stream.stop_stream()
+    #         stream.close()
+
+    #         # お試し
+    #         # p.terminate()
+    #         # pa.terminate()
+
+    #         blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    #             "DONE", blankLogtxt, baseImg, viewerFontPath)
+    #         wf = wave.open(audio_output_path+str(samplingCounter)+".wav", 'wb')
+    #         wf.setnchannels(CHANNELS)
+
+    #         # お試し
+    #         # wf.setsampwidth(p.get_sample_size(FORMAT))
+    #         wf.setsampwidth(pa.get_sample_size(FORMAT))
+
+    #         wf.setframerate(RATE)
+    #         wf.writeframes(b''.join(frames))
+    #         wf.close()
+    #         x, fs = librosa.load(audio_output_path+str(samplingCounter)+".wav")
+    #         out = librosa.feature.melspectrogram(x, sr=fs)
+    #         fig = plt.figure()
+    #         librosa.display.specshow(out, sr=fs)
+    #         fig.savefig(image_output_path+".png")
+    #         plt.close()
+
+    #         # print("hello CUDA")
+    #         X = []
+    #         Y = []
+    #         image = Image.open(image_output_path+".png")
+    #         image = image.convert("RGB")
+    #         image = image.resize((image_size, image_size))
+    #         data = np.asarray(image)
+    #         X.append(data)
+    #         X = np.array(X)
+    #         X = X.astype('float32')
+    #         X = X / 255.0
+    #         pred = model.predict(X)
+    #         ret, frame = cap.read()
+    #         score = np.max(pred)
+    #         pred_label = label[np.argmax(pred[0])]
+    #         # print("accName:",randomAcc)
+    #         blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    #             'LABEL:'+pred_label, blankLogtxt, baseImg, viewerFontPath)
+    #         blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    #             'SCORE:'+str(score), blankLogtxt, baseImg, viewerFontPath)
+    #         print('choiceName:', pred_label)
+    #         print('score:', score)
+    #         os.rename(audio_output_path+str(samplingCounter)+".wav", audio_output_path+str(
+    #             datetime.datetime.now().strftime('%y%m%d%H%M%S'))+str(samplingCounter)+pred_label+".wav")
+    #         samplingCounter = samplingCounter+1
+    #         blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    #             "SEARCHING 'FINISH'", blankLogtxt, baseImg, viewerFontPath)
+    #         blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    #             "MANUAL END:E", blankLogtxt, baseImg, viewerFontPath)
+    #         print("Press e Key...")
+    #         # cap = cv2.VideoCapture(1)  # お試し
+    #         while 1:
+    #             ret, frame = cap.read()
+    #             frame = cv2.resize(frame, (width, height))
+    #             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    #             ret, gray = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+    #             compareGrey = np.count_nonzero(gray == img_end)
+    #             print(compareGrey)
+    #             cv2InputKey = cv2.waitKey(1) & 0xFF
+    #             if ((compareGrey > 266000) or (cv2InputKey == ord('e'))):
+    #                 blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    #                     "GAME END", blankLogtxt, baseImg, viewerFontPath)
+    #                 print("game end")
+    #                 break
+    #             elif (cv2InputKey == ord('i')):
+    #                 print("manual exit")
+    #                 if cap.isOpened():
+    #                     cap.release()
+    #                 cv2.destroyAllWindows()
+    #                 stream.stop_stream()
+    #                 stream.close()
+    #                 # p.terminate()
+    #                 pa.terminate()
+    #                 gc.collect()
+    #                 print("end")
+    #                 exit()
+    #         # cv2.destroyAllWindows()
+    #         # cv2.imshow('frame',img_end)
+    #         # stream.stop_stream()
+    #         # stream.close()
+    #         # p.terminate()
+    #         blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    #             "SEARCHING 'GO!'", blankLogtxt, baseImg, viewerFontPath)
+    #         blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    #             "MANUAL START:S", blankLogtxt, baseImg, viewerFontPath)
+    #         blankLogtxt, baseImg = widgetWindow.print4imgBlank(
+    #             "MANUAL ITRPT:Ctrl+C", blankLogtxt, baseImg, viewerFontPath)
+
+    #         ##################################################################
+    #         # if cap.isOpened():
+    #         #     cap.release()
+    #         # time.sleep(1)
+    #         # cap = cv2.VideoCapture(1)
+
+    #         # # 上の処理1秒待機分をもとの処理から差し引いてみた
+    #         # baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
+    #         #     baseImg, getJsonOptionCode, 3, viewerFontPath, YOUR_COOKIE, API_KEY)
+
+    #         # 元の処理
+    #         baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
+    #             baseImg, getJsonOptionCode, 17, viewerFontPath, YOUR_COOKIE, API_KEY)
+    #         ##################################################################
+
+    #         gc.collect()  # お試し
+    #         print("next")
+    #     elif (cv2InputKey == ord('u')):
+    #         print("manual update")
+
+    #         ##################################################################
+    #         # if cap.isOpened():
+    #         #     cap.release()
+    #         # time.sleep(1)
+    #         # cap = cv2.VideoCapture(1)
+
+    #         # # 上の処理1秒待機分をもとの処理から差し引いてみた
+    #         # baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
+    #         #     baseImg, getJsonOptionCode, 0, viewerFontPath, YOUR_COOKIE, API_KEY)
+
+    #         # 元の処理
+    #         baseImg, getJsonOptionCode = buttlelogUpdater.logUpdate(
+    #             baseImg, getJsonOptionCode, 3, viewerFontPath, YOUR_COOKIE, API_KEY)
+    #         ##################################################################
+
+    #         gc.collect()
+    #     elif (cv2InputKey == ord('i')):
+    #         print("manual exit")
+    #         if cap.isOpened():
+    #             cap.release()
+    #         cv2.destroyAllWindows()
+    #         stream.stop_stream()
+    #         stream.close()
+    #         # p.terminate()
+    #         pa.terminate()
+    #         gc.collect()
+    #         print("end")
+    #         exit()
+    # except KeyboardInterrupt:
+    #     if cap.isOpened():
+    #         cap.release()
+    #     cv2.destroyAllWindows()
+    #     stream.stop_stream()
+    #     stream.close()
+    #     # p.terminate()
+    #     pa.terminate()
+    #     gc.collect()
+    #     print("end")
+    #     break
+
+print("cap is "+str(cap.isOpened()))
